@@ -30,6 +30,8 @@ jobs:
         run: go mod download
 
       - name: Run tests
+        env:
+          CGO_ENABLED: 1
         run: go test -v -race -coverprofile=coverage.out ./...
 
       - name: Upload coverage
@@ -62,22 +64,7 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        include:
-          - os: ubuntu-latest
-            goos: linux
-            goarch: amd64
-          - os: ubuntu-latest
-            goos: linux
-            goarch: arm64
-          - os: macos-latest
-            goos: darwin
-            goarch: amd64
-          - os: macos-latest
-            goos: darwin
-            goarch: arm64
-          - os: windows-latest
-            goos: windows
-            goarch: amd64
+        os: [ubuntu-latest, macos-latest]
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -90,11 +77,9 @@ jobs:
 
       - name: Build
         env:
-          GOOS: ${{ matrix.goos }}
-          GOARCH: ${{ matrix.goarch }}
+          CGO_ENABLED: 1
         run: |
-          go build -ldflags "-X main.version=ci -X main.commit=${{ github.sha }} -X main.date=$(date -u +%Y-%m-%dT%H:%M:%SZ)" -o lgrep${{ matrix.goos == 'windows' && '.exe' || '' }} ./cmd/lgrep
+          go build -ldflags "-X main.version=ci -X main.commit=${{ github.sha }} -X main.date=$(date -u +%Y-%m-%dT%H:%M:%SZ)" -o lgrep ./cmd/lgrep
 
       - name: Test binary
-        if: matrix.goos == runner.os || (matrix.goos == 'linux' && runner.os == 'Linux') || (matrix.goos == 'darwin' && runner.os == 'macOS') || (matrix.goos == 'windows' && runner.os == 'Windows')
-        run: ./lgrep${{ matrix.goos == 'windows' && '.exe' || '' }} version
+        run: ./lgrep version
