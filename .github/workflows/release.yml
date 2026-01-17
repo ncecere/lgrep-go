@@ -1,0 +1,132 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    name: Build ${{ matrix.os }}-${{ matrix.arch }}
+    runs-on: ${{ matrix.runner }}
+    strategy:
+      matrix:
+        include:
+          - os: linux
+            arch: amd64
+            runner: ubuntu-latest
+            artifact: lgrep-linux-amd64
+          - os: linux
+            arch: arm64
+            runner: ubuntu-24.04-arm
+            artifact: lgrep-linux-arm64
+          - os: darwin
+            arch: amd64
+            runner: macos-13
+            artifact: lgrep-darwin-amd64
+          - os: darwin
+            arch: arm64
+            runner: macos-latest
+            artifact: lgrep-darwin-arm64
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: "1.22"
+          cache: true
+
+      - name: Get version
+        id: version
+        run: echo "VERSION=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
+
+      - name: Build binary
+        env:
+          CGO_ENABLED: 1
+          GOOS: ${{ matrix.os }}
+          GOARCH: ${{ matrix.arch }}
+        run: |
+          go build -ldflags "-s -w -X main.version=${{ steps.version.outputs.VERSION }} -X main.commit=${{ github.sha }} -X main.date=$(date -u +%Y-%m-%dT%H:%M:%SZ)" -o ${{ matrix.artifact }} ./cmd/lgrep
+
+      - name: Create tarball
+        run: |
+          tar -czvf ${{ matrix.artifact }}.tar.gz ${{ matrix.artifact }}
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.artifact }}
+          path: ${{ matrix.artifact }}.tar.gz
+
+  release:
+    name: Create Release
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+
+      - name: Get version
+        id: version
+        run: echo "VERSION=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
+
+      - name: Prepare release files
+        run: |
+          mkdir -p release
+          find artifacts -name "*.tar.gz" -exec mv {} release/ \;
+          cd release
+          sha256sum *.tar.gz > checksums.txt
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v1
+        with:
+          name: ${{ steps.version.outputs.VERSION }}
+          draft: false
+          prerelease: ${{ contains(steps.version.outputs.VERSION, '-') }}
+          files: release/*
+          body: |
+            ## Installation
+
+            ### Go Install
+            ```bash
+            go install github.com/nickcecere/lgrep/cmd/lgrep@${{ steps.version.outputs.VERSION }}
+            ```
+
+            ### Download Binary
+            Download the appropriate binary for your platform:
+
+            | Platform | Architecture | Download |
+            |----------|--------------|----------|
+            | Linux | amd64 | [lgrep-linux-amd64.tar.gz](https://github.com/nickcecere/lgrep/releases/download/${{ steps.version.outputs.VERSION }}/lgrep-linux-amd64.tar.gz) |
+            | Linux | arm64 | [lgrep-linux-arm64.tar.gz](https://github.com/nickcecere/lgrep/releases/download/${{ steps.version.outputs.VERSION }}/lgrep-linux-arm64.tar.gz) |
+            | macOS | Intel | [lgrep-darwin-amd64.tar.gz](https://github.com/nickcecere/lgrep/releases/download/${{ steps.version.outputs.VERSION }}/lgrep-darwin-amd64.tar.gz) |
+            | macOS | Apple Silicon | [lgrep-darwin-arm64.tar.gz](https://github.com/nickcecere/lgrep/releases/download/${{ steps.version.outputs.VERSION }}/lgrep-darwin-arm64.tar.gz) |
+
+            ### Manual Installation
+            ```bash
+            # Download and extract (example for macOS Apple Silicon)
+            curl -L https://github.com/nickcecere/lgrep/releases/download/${{ steps.version.outputs.VERSION }}/lgrep-darwin-arm64.tar.gz | tar xz
+            sudo mv lgrep-darwin-arm64 /usr/local/bin/lgrep
+            chmod +x /usr/local/bin/lgrep
+
+            # Verify
+            lgrep version
+            ```
+
+            ## Changelog
+            See the [commit history](https://github.com/nickcecere/lgrep/commits/${{ steps.version.outputs.VERSION }}) for changes.
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

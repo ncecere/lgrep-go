@@ -1,0 +1,48 @@
+# Binaries
+bin/
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+lgrep
+
+# Test binary, built with `go test -c`
+*.test
+
+# Output of the go coverage tool
+coverage.out
+coverage.html
+
+# Go workspace file
+go.work
+
+# IDE and editor directories
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Dependency directories
+vendor/
+
+# Debug files
+*.log
+debug/
+
+# Local config overrides
+*.local.yaml
+*.local.json
+
+# Build artifacts
+dist/

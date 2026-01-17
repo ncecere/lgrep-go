@@ -1,0 +1,79 @@
+# GoReleaser configuration for lgrep
+# Documentation: https://goreleaser.com
+
+version: 2
+
+project_name: lgrep
+
+before:
+  hooks:
+    - go mod tidy
+
+builds:
+  - id: lgrep
+    main: ./cmd/lgrep
+    binary: lgrep
+    env:
+      - CGO_ENABLED=1
+    # CGO requires native compilation - build for current platform only
+    # For cross-compilation, use a CI matrix with native runners
+    goos:
+      - "{{ .Runtime.Goos }}"
+    goarch:
+      - "{{ .Runtime.Goarch }}"
+    ldflags:
+      - -s -w
+      - -X main.version={{.Version}}
+      - -X main.commit={{.Commit}}
+      - -X main.date={{.Date}}
+
+archives:
+  - id: default
+    format: tar.gz
+    name_template: >-
+      {{ .ProjectName }}_
+      {{- .Version }}_
+      {{- .Os }}_
+      {{- .Arch }}
+    format_overrides:
+      - goos: windows
+        format: zip
+    files:
+      - README.md
+      - LICENSE*
+
+checksum:
+  name_template: 'checksums.txt'
+
+snapshot:
+  version_template: "{{ incpatch .Version }}-next"
+
+changelog:
+  sort: asc
+  filters:
+    exclude:
+      - '^docs:'
+      - '^test:'
+      - '^ci:'
+      - '^chore:'
+      - Merge pull request
+      - Merge branch
+
+release:
+  github:
+    owner: nickcecere
+    name: lgrep
+  draft: true
+  prerelease: auto
+  name_template: "v{{.Version}}"
+
+# Homebrew formula (requires separate tap repository)
+# brews:
+#   - name: lgrep
+#     repository:
+#       owner: nickcecere
+#       name: homebrew-tap
+#     folder: Formula
+#     homepage: "https://github.com/nickcecere/lgrep"
+#     description: "Local semantic code search CLI"
+#     license: "MIT"

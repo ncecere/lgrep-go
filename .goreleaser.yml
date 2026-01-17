@@ -1,0 +1,117 @@
+version: 2
+
+project_name: lgrep
+
+before:
+  hooks:
+    - go mod tidy
+
+builds:
+  - id: lgrep
+    main: ./cmd/lgrep
+    binary: lgrep
+    env:
+      - CGO_ENABLED=1
+    goos:
+      - linux
+      - darwin
+    goarch:
+      - amd64
+      - arm64
+    ldflags:
+      - -s -w
+      - -X main.version={{.Version}}
+      - -X main.commit={{.Commit}}
+      - -X main.date={{.Date}}
+    overrides:
+      - goos: linux
+        goarch: amd64
+        env:
+          - CGO_ENABLED=1
+          - CC=x86_64-linux-gnu-gcc
+      - goos: linux
+        goarch: arm64
+        env:
+          - CGO_ENABLED=1
+          - CC=aarch64-linux-gnu-gcc
+      - goos: darwin
+        goarch: amd64
+        env:
+          - CGO_ENABLED=1
+          - CC=o64-clang
+      - goos: darwin
+        goarch: arm64
+        env:
+          - CGO_ENABLED=1
+          - CC=oa64-clang
+
+archives:
+  - id: default
+    format: tar.gz
+    name_template: "{{ .ProjectName }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}"
+    format_overrides:
+      - goos: windows
+        format: zip
+    files:
+      - README.md
+      - LICENSE*
+
+checksum:
+  name_template: "checksums.txt"
+
+snapshot:
+  version_template: "{{ incpatch .Version }}-next"
+
+changelog:
+  sort: asc
+  filters:
+    exclude:
+      - "^docs:"
+      - "^test:"
+      - "^chore:"
+      - Merge pull request
+      - Merge branch
+
+release:
+  github:
+    owner: nickcecere
+    name: lgrep
+  draft: false
+  prerelease: auto
+  name_template: "v{{.Version}}"
+  header: |
+    ## Installation
+
+    ### Homebrew (macOS/Linux)
+    ```bash
+    brew install nickcecere/tap/lgrep
+    ```
+
+    ### Go Install
+    ```bash
+    go install github.com/nickcecere/lgrep/cmd/lgrep@{{.Tag}}
+    ```
+
+    ### Download Binary
+    Download the appropriate binary for your platform from the assets below.
+
+    ### Verify Installation
+    ```bash
+    lgrep version
+    ```
+
+brews:
+  - name: lgrep
+    repository:
+      owner: nickcecere
+      name: homebrew-tap
+      token: "{{ .Env.HOMEBREW_TAP_TOKEN }}"
+    directory: Formula
+    homepage: "https://github.com/nickcecere/lgrep"
+    description: "Local semantic code search with LLM-powered Q&A"
+    license: "MIT"
+    install: |
+      bin.install "lgrep"
+    test: |
+      system "#{bin}/lgrep", "version"
+    skip_upload: auto
