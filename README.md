@@ -14,6 +14,24 @@ A privacy-focused local semantic code search CLI. Search your codebase using nat
 
 ## Installation
 
+### Download Binary (Recommended)
+
+Download the appropriate binary from GitHub Releases:
+
+| Platform | Architecture | Download |
+| --- | --- | --- |
+| Linux | amd64 | `lgrep-linux-amd64.tar.gz` |
+| Linux | arm64 | `lgrep-linux-arm64.tar.gz` |
+| macOS | Apple Silicon | `lgrep-darwin-arm64.tar.gz` |
+
+Example (macOS Apple Silicon):
+
+```bash
+curl -L https://github.com/nickcecere/lgrep/releases/latest/download/lgrep-darwin-arm64.tar.gz | tar xz
+sudo mv lgrep-darwin-arm64 /usr/local/bin/lgrep
+chmod +x /usr/local/bin/lgrep
+```
+
 ### From Source
 
 ```bash
