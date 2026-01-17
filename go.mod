@@ -1,6 +1,6 @@
 module github.com/nickcecere/lgrep
 
-go 1.25.5
+go 1.22
 
 require (
 	github.com/asg017/sqlite-vec-go-bindings v0.1.6
