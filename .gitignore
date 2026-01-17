@@ -5,7 +5,7 @@ bin/
 *.dll
 *.so
 *.dylib
-lgrep
+/lgrep
 
 # Test binary, built with `go test -c`
 *.test
